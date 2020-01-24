@@ -1,0 +1,41 @@
+Results for Tests on 5000 values
+
+Depth = depth of tree, Cost = average #comparisons per search
+     
+             Ascending Order        Prefix Order        Random Order
+Insert
+Method       Depth      Cost      Depth      Cost       Depth      Cost
+
+L  (BST)     5000      3114.47     13        11.75       28        15.95
+
+A  (root)    5000      1886.53     2954      1114.67     28        16.29
+
+R  (L||A)    2492       951.5      1774      673.84      27        15.15  
+
+B  (leaves)   206       62.52      20        13.65       23        13.02
+
+S  (Slay)     33(5000)   23.6      29(5000)  23.61       31(1149)  22.72 
+
+V  (AVL)      13        11.78      13        11.83       15        11.69
+
+
+Notes (what the above indicates):
+
+The above data indicates that value insert in different order will cause different depth and cost.For example, the ascending order number insert by using the BST insertion, you will almost get a linked list, and it has the largest depth and cost. However, different Insert method affect the depth and cost more.In the last line of the data, 5000 values in three different order are inserted but all using the AVL tree insertion, you can see their depth and cost are almost the same and smallest. Because everytime after insertion and deletion, AVL tree will self-balanced by using left or right rotation.So for the normal skewed Binary tree, the worst case will become O(n), but for AVL tree, it will always be O(logn).
+
+Splay tree is a bit different, it  will put the searched node in the top of the BST.That's why when u keep using the same searched node in a function, it's better to use the splay tree.
+
+All in all, there is no 'best insert method', but depends on different situation.(eg. value order, value using etc..)
+
+
+
+
+
+
+
+
+
+
+
+
+

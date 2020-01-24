@@ -1,0 +1,54 @@
+Input	Initial	Has	Number	AvgTime	   AvgTime
+Size	Order	Dup ofruns foruseList  forsort
+5000	random	no	10	    0.122      0.0036
+5000	sorted	no	10      0.022      0.0032
+5000	reverse	no	10	    0.023      0.0036
+5000	random	yes	10      0.12	   0.0040 
+5000	sorted	yes	10	    0.020      0.0032
+5000	reverse	yes	10	    0.022      0.0032
+
+10000	random	no	10	    0.373      0.010
+10000	sorted	no	10	    0.031      0.004
+10000	reverse	no	10	    0.032      0.004
+10000	random	yes	10	    0.39       0.010
+10000	sorted	yes	10	    0.030      0.004
+10000	reverse	yes	10      0.031      0.004
+
+20000	random	no	10	    1.9        0.018
+20000	sorted	no	10      0.052      0.010
+20000	reverse	no	10	    0.048      0.0096
+20000	random	yes	10      1.9        0.020
+20000	sorted	yes	10	    0.052      0.010
+20000	reverse	yes	10	    0.048      0.012
+
+50000	random	no	10	    14.4       0.051
+50000	sorted	no	10      0.11       0.024
+50000	reverse	no	10	    0.11       0.024
+50000	random	yes	10      13.8       0.052
+50000	sorted	yes	10	    0.10       0.024
+50000	reverse	yes	10	    0.10       0.032
+
+100000	random	no	10	    60         0.094   
+100000	sorted	no	10      0.18       0.048
+100000	reverse	no	10	    0.18       0.052
+100000	random	yes	10      60         0.098
+100000	sorted	yes	10	    0.18       0.048
+100000	reverse	yes	10	    0.18       0.056
+
+The above table shows the average times (in seconds) for 10 runs of both the Intlist and sort method.The table shows that duplicate values is not a large impact factor for the time spent executing the code of the command (user time). However, when the input size become larger and larger, the user time for the Intlist method increase exponentially.But for the sort part, the user time just increase relatively.From the timing results of the two lists, we can know that different structure and algorithm really change the run time a lot. Hence, we always need to try to find a better and more efficient algorithm to solve cs problems.
+
+
+/***************************************************
+./randList 10  display a list of 10 random numbers
+./randList 100 | ./useIntList     a|b a wtires b reads
+./randList 10 x    if x same the 10 radom number same
+seq x   -----> 1 2 3 4 .... x
+
+sort -n ascending (sorted)
+sort -nr descending (reverse)
+sort -R random order
+
+random -> duplicates
+sequence -> no duplicates
+***************************************************/
+

@@ -1,0 +1,194 @@
+// Centrality Measures ADT implementation
+// COMP2521 Assignment 2
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
+#include <math.h>
+
+#include "CentralityMeasures.h"
+#include "Dijkstra.h"
+#include "PQ.h"
+#include "Graph.h"
+
+// Helper function for betweenessCentrality
+
+// count the total number of shortest path from node s to node t
+double total_path(ShortestPaths sps, Vertex s, Vertex t) {
+    double total = 0;
+    // pred is the predecessor list for vertex t;
+    PredNode *pred = sps.pred[t];
+    
+    while (pred != NULL) {
+        // s is the predecessor node of t
+        if (pred->v == s) {
+            total++;
+        } else { // pred->v != s, then find if sps.pred[pred->v] has s or not
+            total = total + total_path(sps, s, pred->v);
+        }       
+        pred = pred->next;
+    }     
+
+    return total;
+}
+
+// count the number of paths that pass through v from node s to node t
+double pass_path(ShortestPaths sps, Vertex s, Vertex t, Vertex v) {
+    double pass = 0;
+    // pred is the predecessor list for vertex t;
+    PredNode *pred = sps.pred[t];
+    
+    while (pred != NULL) {
+        // this path pass though v
+        if (pred->v == v) {
+            pass++; 
+        
+        // which means this path might still pass through v, keep looking
+        } else if (pred->v != s) { // pred->v != v
+            pass = pass + pass_path(sps, s, pred->v, v);
+        } // else pred->v != v && pred->v == s, not pass through v, no change
+        
+        pred = pred->next;
+    }     
+
+    return pass;
+}
+
+
+
+//////////////////////////////////////////////////////////////////////////////
+NodeValues closenessCentrality(Graph g) {
+    NodeValues nvs;
+    
+    // The number of nodes in the graph
+    nvs.numNodes = GraphNumVertices(g);
+    int numV = GraphNumVertices(g);
+    
+    // closeness centralirt for each vetex (n-1)^2 / (N-1)* sum of d(u,v)
+    double *values = malloc(sizeof(double) * (size_t)numV);
+    
+    // y = N - 1, N denotes the number of nodes in the graph
+    double y = numV - 1;
+
+    
+    for (int i = 0; i < numV; i++) {
+        values[i] = 0;
+    }
+    
+    // x = n - 1, y = N - 1, closeness = x^2/(y*d(u,v))
+    for (int v = 0; v < numV; v++) {
+        // n is the number of nodes that v can reach;
+        int n = 0;
+        
+        // sum of the length of the shortest paths 
+        // between the node and all other reachable nodes
+        double sum = 0;
+        
+        // 'ShortestPaths' structure with the source vertex v
+        ShortestPaths sps = dijkstra(g, v);
+        for (int i = 0; i < numV; i++) {
+            // distance not equal 0 means reachable
+            if (sps.dist[i] != 0) {
+                sum = sum + sps.dist[i];
+                n++;           
+            }
+        }        
+        
+        // x = n - 1, n is the number of nodes that v can reach;
+        double x = n;    
+        
+        if (sum == 0) {
+            values[v] = 0;
+        } else {
+            values[v] = (x * x) / (y * sum);
+        }
+    }
+    
+    nvs.values = values;
+    return nvs;
+}
+
+NodeValues betweennessCentrality(Graph g) {
+    NodeValues nvs;
+    // The number of nodes in the graph
+    nvs.numNodes = GraphNumVertices(g);
+    int numV = GraphNumVertices(g);
+    
+    // betweeness centrality of a node v
+    double *values = malloc(sizeof(double) * (size_t)numV);
+    
+    for (int i = 0; i < numV; i++) {
+        values[i] = 0;
+    }
+    
+    // for each vertex in the graph, value[v] ==  betweeness centrality
+    for (int v = 0; v < numV; v++) {
+        
+        double total = 0;
+        double pass = 0;        
+        double value = 0;
+            
+        for (int s = 0; s < numV; s++) {
+            // s != v
+            if (s == v) {
+                continue;
+            }    
+
+            // 'ShortestPaths' structure with the source vertex s
+            ShortestPaths sps = dijkstra(g, s); 
+            for (int t = 0; t < numV; t++) {
+                // t != s && t != v
+                if (t == s || t == v) {
+                    continue;
+                }
+                
+                // the total number of shortest path from node s to t
+                total = total_path (sps, s, t);
+                
+                // the number of these paths that pass through v 
+                pass = pass_path (sps, s, t, v);
+                
+                /*if (total == 0) {
+                    continue;
+                } else {
+                    value = value + pass/total;
+                } 
+                */    
+                
+                if (total != 0) {
+                    value = value + pass/total;
+                } 
+                //printf("From vertex %d to %d, check if pass through %d\n", s, t, v);
+                //printf("total path:%lf---- pass path %lf------ value %lf-----\n", total, pass, value);
+            }              
+        }
+        
+        values[v] = value;
+    }
+    
+    nvs.values = values;
+    return nvs;
+}
+
+NodeValues betweennessCentralityNormalised(Graph g) {
+	NodeValues nvs = betweennessCentrality(g);
+	double n = nvs.numNodes;
+	
+	for (int i = 0; i < nvs.numNodes; i++) {
+        if (nvs.numNodes > 2) {
+            nvs.values[i] = nvs.values[i] / ((n - 1) * (n-2));
+	    }
+	}
+
+	return nvs;
+}
+
+void showNodeValues(NodeValues nvs) {
+    for (int i = 0; i < nvs.numNodes; i++) {
+        printf("%d: %lf\n", i, nvs.values[i]);
+    }
+}
+
+void freeNodeValues(NodeValues nvs) {
+
+}

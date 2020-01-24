@@ -1,0 +1,232 @@
+// Lance-Williams Algorithm for Hierarchical Agglomerative Clustering
+// COMP2521 Assignment 2
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
+
+#include "Graph.h"
+#include "LanceWilliamsHAC.h"
+#include <math.h>
+#include <limits.h>
+#define INF ~(1<<31)
+
+// Helper function
+double max(double x, double y) {
+    if (x >= y) {
+        return x;
+    } else {
+        return y;
+    }
+}
+
+double min(double x, double y) {
+    if (x < y) {
+        return x;
+    } else {
+        return y;
+    }
+}
+
+// create a 2d array for distance
+double **DistArray(Graph g) {
+    int numV = GraphNumVertices(g);
+    // create a 2d array
+    double **dist = malloc(sizeof(double) * numV);
+    
+    for (int i = 0; i < numV; i++) {
+        dist[i] = malloc(sizeof(double) * numV); 
+    }
+    // initialise the 2d array to infinity
+    for (int i = 0; i < numV; i++) {
+        for (int j = 0; j < numV; j++) {
+            dist[i][j] = INT_MAX;
+        }
+    }
+    
+    // Distance d between vertices i and j is defined as d = 1/max(wt)
+    // if i and j are not conneced, keep infinity
+    for (int v = 0; v < numV; v++) {
+        AdjList out = GraphOutIncident(g, v);
+        for (; out != NULL; out = out->next) {
+            // dist inf or larger
+            if (dist[v][out->v] > (1 / (double)out->weight)) {
+                dist[v][out->v] = 1 / (double)out->weight;
+            }    
+        }
+        
+        AdjList in = GraphInIncident(g, v);
+        for (; in != NULL; in = in->next) {
+            // dist inf or larger
+            if (dist[v][in->v] > (1 / (double)in->weight)) {
+                dist[v][in->v] = 1 / (double)in->weight;
+            }    
+        }  
+    }
+
+    return dist;
+}
+
+// free the array for distance
+void freeDist(double **dist, int numV) {
+    for (int i = 0; i < numV; i++) {
+        free(dist[i]);
+    }
+
+    free(dist);
+}
+
+// creat new DNode include vertex V
+Dendrogram newDNode(Vertex v) {
+    Dendrogram new = malloc(sizeof(struct DNode));
+    new->vertex = v;
+    new->left = NULL;
+    new->right = NULL;
+    
+    return new;
+}
+
+// check if the DNode array is empty except for the first cell, in the end 
+// all the DNode in the other cell will be merged in the first cell
+int ArrayIsEmpty(Dendrogram *array, int numV) { // true return 1; false return 0
+    for (int i = 1; i < numV; i++) {
+        if (array[i] != NULL) {
+            return 0;
+        }
+    }
+    
+    return 1;
+}
+
+
+// Merge two Dendrogram into the a new one and update Dendrogram
+void merge(Dendrogram *array, int numV, Vertex i, Vertex j) {
+    Dendrogram Ci = array[i];
+    Dendrogram Cj = array[j];
+    Dendrogram merge = malloc(sizeof(*merge));
+    // let root of merge euqal to any random number, except from 0..numV
+    merge->vertex = -1;
+    merge->left = Ci;
+    merge->right = Cj;
+    
+    array[i] = merge;
+    array[j] = NULL;
+}
+
+// use the Lance-Williams method find the distance between Cij and Ck
+double Lance_Williams(double **dist, Vertex k, Vertex i, Vertex j, int method) {
+    if (dist[i][k] == INT_MAX) {
+        return dist[j][k];
+    } else if (dist[j][k] == INT_MAX) {
+        return dist[i][k];
+    }
+    double newDist = 0;   
+    // singe link method
+    if (method == 1) {
+        newDist = min(dist[i][k], dist[j][k]);
+    // complete link method
+    } else if (method == 2) {
+        newDist = max(dist[i][k], dist[j][k]);
+    }
+    //printf("%lf\n", newDist);
+    return newDist;
+}
+
+// Update the DIST array using the Lance-Williams method
+// replace the Ci array with the distance from Cij to the other vertices
+// make all the cells of Cj array be NULL --> infinity
+
+void updateArray(double **dist, int numV, Vertex Ci, Vertex Cj, int method) {
+    for (int v = 0; v < numV; v++) {
+        
+        if (v != Ci && v != Cj) {
+            dist[Ci][v] = Lance_Williams(dist, v, Ci, Cj, method);
+            dist[v][Ci] = Lance_Williams(dist, v, Ci, Cj, method);
+        }
+        
+        dist[Cj][v] = INT_MAX;    
+        dist[v][Cj] = INT_MAX;   
+    }
+}
+
+
+/**
+ * Generates  a Dendrogram using the Lance-Williams algorithm (discussed
+ * in the spec) for the given graph  g  and  the  specified  method  for
+ * agglomerative  clustering. The method can be either SINGLE_LINKAGE or
+ * COMPLETE_LINKAGE (you only need to implement these two methods).
+ * 
+ * The function returns a 'Dendrogram' structure.
+ */
+Dendrogram LanceWilliamsHAC(Graph g, int method) {
+    Dendrogram d;    
+    int numV = GraphNumVertices(g);
+    
+    
+    double **dist = DistArray(g);
+    // create an array where each cell stores a pointer to 1 dendogram
+    // which has a single vertex in it
+    Dendrogram *array = malloc(sizeof(Dendrogram) * numV);
+    
+    // initialise the arrary
+    
+    for (int v = 0; v < numV; v++) {
+        array[v] = newDNode(v);   
+    }
+    
+    // still have more than one cell in the array not NULL
+    while (!ArrayIsEmpty(array, numV)) {
+        // find two closest clusters Ci and Cj
+        double min = INT_MAX;
+        int Ci = 0;
+        int Cj = 0;
+        for (int i = 0; i < numV; i++) {
+            for (int j = 0; j < numV; j++) {
+                if (dist[i][j] < min) {
+                    min = dist[i][j];
+                    Ci = i;
+                    Cj = j;   
+                }
+            }
+        }       
+        
+        //printf("dist[%d][%d]: %lf\n", Ci, Cj, dist[Ci][Cj]);
+        
+        // let Ci be the smaller vertex, Cj be the bigger
+        // array[0] will be the final dendrogram; 
+        if (Cj < Ci) {
+            Vertex tmp = Cj;
+            Cj = Ci;
+            Ci = tmp;
+        }
+        
+        merge(array, numV, Ci, Cj);    
+        updateArray(dist, numV, Ci, Cj, method);
+    }
+    
+    d = array[0];
+    freeDist(dist, numV);
+    return d;
+}
+
+/**
+ * Frees all memory associated with the given Dendrogram structure.
+ */
+void freeDendrogram(Dendrogram d) {
+    /*    if (d == NULL) {
+        return;
+    }
+    
+    if (d->left == NULL && d->right == NULL) {
+        free(d);
+        return;
+    }
+    
+    free(d->left);
+    free(d->right);
+    free(d);
+
+
+*/    
+    
+}
